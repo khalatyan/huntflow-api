@@ -50,30 +50,29 @@ def main(file_path, auth_token):
     resume_files = {}
 
     for position_directory in os.listdir(RESUMES_DIR):
-        if position_directory != ".DS_Store":
-            position_directory_path = os.path.join(RESUMES_DIR, position_directory)
-            for resume_file in os.listdir(position_directory_path):
-                candidate_name = str(resume_file.split(".")[0])
-                mt = mimetypes.guess_type(resume_file)[0]
-                files=[
-                    ('file',('resume_file',open(os.path.join(position_directory_path, resume_file),'rb'), mt))
-                ]
-                headers = HEADERS.copy()
-                headers['X-File-Parse'] = 'true'
+        position_directory_path = os.path.join(RESUMES_DIR, position_directory)
+        for resume_file in os.listdir(position_directory_path):
+            candidate_name = str(resume_file.split(".")[0])
+            mt = mimetypes.guess_type(resume_file)[0]
+            files=[
+                ('file',('resume_file',open(os.path.join(position_directory_path, resume_file),'rb'), mt))
+            ]
+            headers = HEADERS.copy()
+            headers['X-File-Parse'] = 'true'
 
-                add_file_response = requests.post(
-                    f'{ENDPOINT_URL}account/{ACCOUNT_ID}/upload', 
-                    headers=headers, 
-                    files=files
-                )
-                if add_file_response.status_code == 200:
-                    response_data = add_file_response.json()
-                    candidate_name = "".join([response_data["fields"]["name"]["last"], response_data["fields"]["name"]["first"]])
-                    resume_files[candidate_name] = response_data
-                    resume_files[candidate_name]["file_path"] = os.path.join(position_directory_path, resume_file)
+            add_file_response = requests.post(
+                f'{ENDPOINT_URL}account/{ACCOUNT_ID}/upload', 
+                headers=headers, 
+                files=files
+            )
+            if add_file_response.status_code == 200:
+                response_data = add_file_response.json()
+                candidate_name = "".join([response_data["fields"]["name"]["last"], response_data["fields"]["name"]["first"]])
+                resume_files[candidate_name] = response_data
+                resume_files[candidate_name]["file_path"] = os.path.join(position_directory_path, resume_file)
     
 
-    
+    #Processing the base file
     df = pd.read_excel(file_path)
     if not "done" in df:
         df["done"] = "0"
@@ -149,8 +148,9 @@ def main(file_path, auth_token):
                 continue
             
             # Тут по желанию)
-            os.remove(resume_files[name]["file_path"])
-            
+            if name in resume_files:
+                os.remove(resume_files[name]["file_path"])
+
             df["done"][index] = "1"
             df.to_excel(file_path)
 
